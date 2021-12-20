@@ -3,7 +3,7 @@ import os
 import requests
 import time
 
-from app import handler
+from src.app import handler
 
 TOKEN = os.environ["TOKEN"]
 
@@ -35,6 +35,10 @@ def loop():
             update_id = update['update_id']
             if update_id >= offset:
                 offset = update_id + 1
+
+            print(update)
+
+            update = {'body': json.dumps(update)}
 
             handler(update, {})
 
