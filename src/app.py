@@ -7,38 +7,27 @@ def handler(event, context):
 
     chat = event_body['message']['chat']['id']
 
-    file_id = get_file_id(event_body['message'])
-    if not file_id:
-        status, body = tg.send_message(chat=chat, text='send me a text file')
-        assert status == 200, f"failed to send message: {body['description']}"
+    if 'document' not in event_body['message']:
+        return send_message(chat=chat, text='send me a plain text file')
+    
+    document = event_body['message']['document']
+    if document['file_size'] > 10 * 1024:
+        return send_message(chat=chat, text='file must be smaller than 10KB')
 
-        return
-
-
-    status, body = tg.get_file(file_id)
+    status, body = tg.get_file(document['file_id'])
     if status != 200:
-        status, _ = tg.send_message(chat=chat, text=body['description'])
-        assert status == 200, f"failed to send message: {body['description']}"
-
-        return
-
+        return send_message(chat=chat, text=body['description'])
 
     file_path = body['result']['file_path']
     status, data = tg.download_file(file_path)
     if status != 200:
-        status, _ = tg.send_message(chat=chat, text="failed to download file")
-        assert status == 200, f"failed to send message: {body['description']}"
-
-        return
-
+        return send_message(chat=chat, text="failed to download file")
 
     status, body = tg.send_message(chat=chat, text=data, parse_mode="MarkdownV2")
-
     if status != 200:
-        status, _ = tg.send_message(chat=chat, text=body['description'])
-        assert status == 200, f"failed to report error: {body['description']}"
+        return send_message(chat=chat, text=body['description'])
 
 
-def get_file_id(message):
-    if 'document' in message:
-        return message['document']['file_id']
+def send_message(chat, text):
+    status, body = tg.send_message(chat=chat, text=text)
+    assert status == 200, f"failed to send message: {body['description']}"
